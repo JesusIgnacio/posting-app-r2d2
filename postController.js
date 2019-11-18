@@ -1,18 +1,20 @@
 const fetch = require('node-fetch')
 
-const POST_URL_BASE = 'https://hn.algolia.com/api/v1/search_by_date?query=nodejs'
+const POST_URL_BASE = 'https://hn.algolia.com/api/v1/search_by_date?query=nodejs';
+
+var postRepository = require("./postRepository");
 
 exports.index =  async function(req, res, next) {
   try {
     const response =  await fetch(`${POST_URL_BASE}`);
     const data =  await response.json();
-    const repos = JSON.stringify(data);
-    //SET DATA TO DB
-    //LIST DATA ACTIVE
+    postRepository.store(data.hits);
+    const posts = await fetch(postRepository.list());
+    console.log(posts);
     res.json({
-      status: "success",
+      status: 0,
       message: "Posts retrieved successfully",
-      data: data
+      data: posts
     });
   } catch (err) {
     res.json({
@@ -25,11 +27,10 @@ exports.index =  async function(req, res, next) {
 exports.delete = async function(req, res, next) {
   try {
     const { id } = req.params;
-    //Deactivate Post
+    postRepository.deactivate(id);
     res.json({
       status: 0,
-      message: "Post has deleted successfully",
-      data: data
+      message: "Post has deleted successfully"
     });
   } catch (err) {
     res.json({
