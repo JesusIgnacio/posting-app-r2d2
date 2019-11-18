@@ -1,82 +1,77 @@
-const MongoClient = require("mongodb").MongoClient;
+const MongoClient = require('mongodb').MongoClient;
 
-const URL_DATABASE = ''
+const url = 'mongodb://localhost:27017/';
 
-var model = require("./postModel");
-var mongoClient = new MongoClient(URL_DATABASE, { useNewUrlParser: true, useUnifiedTopology: true });
+var mongoClient = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+ 
+const dbName = 'test';
 
-exports.store = (data) => {
-  mongoClient.connect(err => {
-    if (err){
-      console.log('Unable to connect to database', err);
-    } else {
-      console.log('Connected to database 1');
-      const collection = mongoClient.db('test').collection('posts') ;
-      data.map(post => {
-        var auxPost = {
-          story_id:String,
-          story_title:String,
-          story_url:String,
-          created_at:String,
-          story_state:Boolean
-        };
-        if ((post.story_title != null || post.title !=null) && !findPost(post) ){
-          auxPost.story_id = post.story_id;
-          auxPost.story_tittle = (post.story_title || post.title);
-          auxPost.story_url = post.url;
-          auxPost.created_at = post.created_at;
-          auxPost.story_state = true;
-          collection.insertOne(auxPost, function(err){
-            if (err){
-              console.log('Post save fails', err);
-            }
-          })
+exports.store = async (data) => {
+  const connection = await mongoClient.connect();
+  const db = await connection.db(dbName);
+  const collection = await db.collection('posts');
+  data.map(post =>{
+    let p = setPost(post);
+    if (p != null){
+      collection.insertOne(p, function(err){
+        if (err){
+          console.log('Post save fails', err);
         }
       });
-      mongoClient.close();
     }
-  });
+  })
+  connection.close();
+  return true;
 }
 
-exports.list = () => {
-  mongoClient.connect(err => {
-    if (err){
-      console.log('Unable to connect to database', err);
-    } else {
-      console.log('Connected to database 2');
-      const collection = mongoClient.db('test').collection('posts') ;
-      console.log(collection.find({story_state: true}))
-      collection.find({story_state: true}).toArray(function(err, result) {
-        if (err){
-          console.log('Post List Fails');
-        }else {
-          console.log('Post List Succesfully');
-          mongoClient.close();
-          return result;
-        }
-      })
-    }
-  });
+exports.list = async () => {
+  const connection = await mongoClient.connect();
+  const db = connection.db(dbName);
+  const collection = db.collection('posts');
+  let data;
+  const response = await collection.find({story_state: true}).toArray()
+                          .then(out => data = out)
+                          .then(() => connection.close())
+  console.log(data);
+  return data;
 }
 
-exports.deactivate = (id) => {
-  mongoClient.connect(URL_DATABASE, function(err, db) {
-    if (err){
-      console.log('Unable to connect to database', err);
-    } else {
-      console.log('Connected to database');
-      var collection = db('test').collection('posts') ;
-      collection.update({story_id: id}, {$set: {story_state: false}}).toArray(function(err, result) {
-        if (err){
-          console.log('Post Deactive Fails');
-        }else {
-          console.log('Post Deactive Succesfully');
-        }
-      })
-    }
-  });
+exports.deactivate = async (id) => {
+  let deactivated = false;
+  const connection = await mongoClient.connect();
+  const db = connection.db(dbName);
+  const collection = db.collection('posts');
+  let data;
+  collection.updateOne({story_id: Number(id)}, [{$set: {story_state: false}}], function(err, result){
+                        if (err){
+                          console.log('Post deactivate fails', err);
+                        }else{
+                          console.log(result.result.nModified);
+                          console.log('Post deactivate succesfully');
+                        }
+                      });
+  return data;
 }
 
 function findPost(post)  {
   return false;
+}
+
+function setPost(post){
+  if ((post.story_title != null || post.title !=null) && !findPost(post) ){
+    var auxPost = {
+      story_id:String,
+      story_title:String,
+      story_url:String,
+      created_at:String,
+      story_state:Boolean
+    };
+    auxPost.story_id = post.story_id,
+    auxPost.story_tittle = (post.story_title || post.title),
+    auxPost.story_url = post.url,
+    auxPost.created_at = post.created_at,
+    auxPost.story_state = true
+    return auxPost;
+  }
+  return null;
 }
