@@ -19,7 +19,7 @@ exports.store = async (data) => {
           { 
           story_id:     p.story_id,
           story_author: p.story_author,
-          story_tittle: p.story_title,
+          story_title: p.story_title,
           story_url:    p.story_url,
           created_at:   p.created_at,
           story_state:  p.story_state 
@@ -77,7 +77,7 @@ function setPost(post){
     };
     auxPost.story_id = post.story_id,
     auxPost.story_author = post.author,
-    auxPost.story_tittle = (post.story_title || post.title),
+    auxPost.story_title = (post.story_title || post.title),
     auxPost.story_url = (post.story_url || post.url),
     auxPost.created_at = post.created_at,
     auxPost.story_state = true
