@@ -14,7 +14,7 @@ exports.store = async (data) => {
     let p = setPost(post);
     if (p != null){
       collection.updateOne(
-        { story_id: p.story_id },
+        { story_id: p.story_id, story_state: true },
         {$set:
           { 
           story_id:     p.story_id,
@@ -66,7 +66,7 @@ exports.deactivate = async (id) => {
 
 
 function setPost(post){
-  if ((post.story_title != null || post.title !=null) ){
+  if ((post.story_title != null || post.title !=null) && (post.story_url != null || post.url != null) && post.story_id != null){
     var auxPost = {
       story_id: String,
       story_author: String,
@@ -78,7 +78,7 @@ function setPost(post){
     auxPost.story_id = post.story_id,
     auxPost.story_author = post.author,
     auxPost.story_tittle = (post.story_title || post.title),
-    auxPost.story_url = post.url,
+    auxPost.story_url = (post.story_url || post.url),
     auxPost.created_at = post.created_at,
     auxPost.story_state = true
     return auxPost;
