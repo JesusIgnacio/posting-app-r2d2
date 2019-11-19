@@ -13,7 +13,18 @@ exports.store = async (data) => {
   data.map(post =>{
     let p = setPost(post);
     if (p != null){
-      collection.insertOne(p, function(err){
+      collection.updateOne(
+        { story_id: p.story_id },
+        {$set:
+          { 
+          story_id:     p.story_id,
+          story_author: p.story_author,
+          story_tittle: p.story_title,
+          story_url:    p.story_url,
+          created_at:   p.created_at,
+          story_state:  p.story_state 
+          }
+        },{ upsert: true } , function(err){
         if (err){
           console.log('Post save fails', err);
         }
@@ -53,20 +64,19 @@ exports.deactivate = async (id) => {
   return data;
 }
 
-function findPost(post)  {
-  return false;
-}
 
 function setPost(post){
-  if ((post.story_title != null || post.title !=null) && !findPost(post) ){
+  if ((post.story_title != null || post.title !=null) ){
     var auxPost = {
-      story_id:String,
-      story_title:String,
-      story_url:String,
-      created_at:String,
-      story_state:Boolean
+      story_id: String,
+      story_author: String,
+      story_title: String,
+      story_url: String,
+      created_at: String,
+      story_state: Boolean
     };
     auxPost.story_id = post.story_id,
+    auxPost.story_author = post.author,
     auxPost.story_tittle = (post.story_title || post.title),
     auxPost.story_url = post.url,
     auxPost.created_at = post.created_at,
