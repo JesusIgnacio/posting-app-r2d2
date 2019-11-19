@@ -43,7 +43,6 @@ exports.list = async () => {
   const response = await collection.find({story_state: true}).sort({created_at: -1}).toArray()
                           .then(out => data = out)
                           .then(() => connection.close())
-  console.log(data);
   return data;
 }
 
@@ -57,7 +56,6 @@ exports.deactivate = async (id) => {
                         if (err){
                           console.log('Post deactivate fails', err);
                         }else{
-                          console.log(result.result.nModified);
                           console.log('Post deactivate succesfully');
                         }
                       });
