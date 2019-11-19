@@ -40,7 +40,7 @@ exports.list = async () => {
   const db = connection.db(dbName);
   const collection = db.collection('posts');
   let data;
-  const response = await collection.find({story_state: true}).toArray()
+  const response = await collection.find({story_state: true}).sort({created_at: -1}).toArray()
                           .then(out => data = out)
                           .then(() => connection.close())
   console.log(data);
