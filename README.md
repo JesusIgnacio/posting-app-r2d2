@@ -1,4 +1,4 @@
-# Posting App C3P0
+# Posting App R2D2
 
 Container Application to provides services to get information from [Hacker News API](https://hn.algolia.com) and save it locally.
 
