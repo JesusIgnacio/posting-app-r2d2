@@ -1,6 +1,6 @@
 # Posting App C3P0
 
-Container Application to provides services to get information from [Hacker News API](https://hn.algolia.com) and save locally.
+Container Application to provides services to get information from [Hacker News API](https://hn.algolia.com) and save it locally.
 
 ## Stack
 * [NodeJS](https://nodejs.org/)
