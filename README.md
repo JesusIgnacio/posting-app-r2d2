@@ -14,7 +14,7 @@ Let's get ready to rumble:
 * clone this repository on your local machine.
 * go to source folder.
 * execute this commands on terminal:
-  * ```docker-compose build``` // This command take a few minutes, so , go to see your ex's profile in the meantime ><.
+  * ```docker-compose build``` 
   * ```docker-compose up```
 
 So there is [Posting APP](http://localhost:5000/api/posts) ...i hope so :). 
