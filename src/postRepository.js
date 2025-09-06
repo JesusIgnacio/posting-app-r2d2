@@ -1,85 +1,110 @@
-const MongoClient = require('mongodb').MongoClient;
+import { MongoClient } from 'mongodb';
 
-const url = 'mongodb://mongo:27017/';
+const url = process.env.MONGODB_URL || 'mongodb://mongo:27017/';
+const dbName = process.env.DB_NAME || 'test';
 
-var mongoClient = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
- 
-const dbName = 'test';
+let client;
+let db;
 
-exports.store = async (data) => {
-  const connection = await mongoClient.connect();
-  const db = await connection.db(dbName);
-  const collection = await db.collection('posts');
-  data.map(post =>{
-    let p = setPost(post);
-    if (p != null){
-      collection.updateOne(
-        { story_id: p.story_id, story_state: true },
-        {$set:
-          { 
-          story_id:     p.story_id,
-          story_author: p.story_author,
-          story_title: p.story_title,
-          story_url:    p.story_url,
-          created_at:   p.created_at,
-          story_state:  p.story_state 
-          }
-        },{ upsert: true } , function(err){
-        if (err){
-          console.log('Post save fails', err);
-        }
-      });
+const connectDB = async () => {
+  if (!client) {
+    client = new MongoClient(url);
+    await client.connect();
+    db = client.db(dbName);
+    console.log('📦 Connected to MongoDB');
+  }
+  return db;
+};
+
+const getCollection = async (collectionName) => {
+  const database = await connectDB();
+  return database.collection(collectionName);
+};
+
+export const store = async (data) => {
+  try {
+    const collection = await getCollection('posts');
+    const validPosts = data.map(post => setPost(post)).filter(post => post !== null);
+    
+    if (validPosts.length === 0) {
+      return true;
     }
-  })
-  connection.close();
-  return true;
-}
 
-exports.list = async () => {
-  const connection = await mongoClient.connect();
-  const db = connection.db(dbName);
-  const collection = db.collection('posts');
-  let data;
-  const response = await collection.find({story_state: true}).sort({created_at: -1}).toArray()
-                          .then(out => data = out)
-                          .then(() => connection.close())
-  return data;
-}
+    const bulkOps = validPosts.map(post => ({
+      updateOne: {
+        filter: { story_id: post.story_id },
+        update: { $set: post },
+        upsert: true
+      }
+    }));
 
-exports.deactivate = async (id) => {
-  let deactivated = false;
-  const connection = await mongoClient.connect();
-  const db = connection.db(dbName);
-  const collection = db.collection('posts');
-  let data;
-  collection.updateOne({story_id: Number(id)}, [{$set: {story_state: false}}], function(err, result){
-                        if (err){
-                          console.log('Post deactivate fails', err);
-                        }else{
-                          console.log('Post deactivate succesfully');
-                        }
-                      });
-  return data;
-}
+    await collection.bulkWrite(bulkOps);
+    console.log(`✅ Stored ${validPosts.length} posts`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error storing posts:', error);
+    throw error;
+  }
+};
 
+export const list = async () => {
+  try {
+    const collection = await getCollection('posts');
+    const data = await collection
+      .find({ story_state: true })
+      .sort({ created_at: -1 })
+      .toArray();
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Error listing posts:', error);
+    throw error;
+  }
+};
 
-function setPost(post){
-  if ((post.story_title != null || post.title !=null) && (post.story_url != null || post.url != null) && post.story_id != null){
-    var auxPost = {
-      story_id: String,
-      story_author: String,
-      story_title: String,
-      story_url: String,
-      created_at: String,
-      story_state: Boolean
+export const deactivate = async (id) => {
+  try {
+    const collection = await getCollection('posts');
+    const result = await collection.updateOne(
+      { story_id: Number(id) },
+      { $set: { story_state: false } }
+    );
+    
+    if (result.matchedCount === 0) {
+      throw new Error(`Post with ID ${id} not found`);
+    }
+    
+    console.log(`✅ Post ${id} deactivated successfully`);
+    return result;
+  } catch (error) {
+    console.error('❌ Error deactivating post:', error);
+    throw error;
+  }
+};
+
+const setPost = (post) => {
+  if (
+    (post.story_title != null || post.title != null) &&
+    (post.story_url != null || post.url != null) &&
+    post.story_id != null
+  ) {
+    return {
+      story_id: post.story_id,
+      story_author: post.author || 'Unknown',
+      story_title: post.story_title || post.title,
+      story_url: post.story_url || post.url,
+      created_at: post.created_at || new Date().toISOString(),
+      story_state: true
     };
-    auxPost.story_id = post.story_id,
-    auxPost.story_author = post.author,
-    auxPost.story_title = (post.story_title || post.title),
-    auxPost.story_url = (post.story_url || post.url),
-    auxPost.created_at = post.created_at,
-    auxPost.story_state = true
-    return auxPost;
   }
   return null;
-}
+};
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  if (client) {
+    await client.close();
+    console.log('📦 MongoDB connection closed');
+  }
+  process.exit(0);
+});

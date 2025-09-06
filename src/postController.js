@@ -1,44 +1,68 @@
-const fetch = require('node-fetch')
+import * as postRepository from './postRepository.js';
 
 const POST_URL_BASE = 'https://hn.algolia.com/api/v1/search_by_date?query=nodejs';
 
-var postRepository = require("./postRepository");
-var test = require("./testing_db")
-
-exports.index =  async function(req, res, next) {
+export const index = async (req, res) => {
   try {
-    const response =  await fetch(`${POST_URL_BASE}`);
-    const data =  await response.json();
+    const response = await fetch(`${POST_URL_BASE}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.hits || !Array.isArray(data.hits)) {
+      throw new Error('Invalid data format received from API');
+    }
+    
     const stored = await postRepository.store(data.hits);
     let listPost = null;
-    if (stored){
-      await postRepository.list().then(data => listPost = data);
+    
+    if (stored) {
+      listPost = await postRepository.list();
     }
-    res.json({
-      status: 0,
-      message: "Posts retrieved successfully",
-      data: listPost
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Posts retrieved successfully',
+      data: listPost,
+      count: listPost ? listPost.length : 0
     });
   } catch (err) {
-    res.json({
-      status: 1,
-      message: err,
+    console.error('Error in index controller:', err);
+    res.status(500).json({
+      status: 'error',
+      message: err.message || 'Internal server error',
     });
   }
-}
+};
 
-exports.delete = async function(req, res, next) {
+export const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Post ID is required'
+      });
+    }
+    
     const result = await postRepository.deactivate(id);
-    res.json({
-      status: 0,
-      message: "Post has deleted successfully"
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Post has been deleted successfully'
     });
   } catch (err) {
-    res.json({
-      status: 1,
-      message: err,
+    console.error('Error in delete controller:', err);
+    res.status(500).json({
+      status: 'error',
+      message: err.message || 'Internal server error',
     });
   }
-}
+};
+
+// For backward compatibility
+export { deletePost as delete };
